@@ -64,7 +64,7 @@ export default function CheckoutSuccessPage() {
         <h1 className="text-lg font-extrabold text-navy">Payment pending</h1>
         <p className="mt-1 text-muted">
           Your bank/wallet is still processing this payment. Check your order status in a few
-          minutes — you don't need to pay again.
+          minutes — you don&apos;t need to pay again.
         </p>
         <Link href="/profile" className="mt-5 inline-block rounded-lg bg-brand px-5 py-2 font-semibold text-white">
           View my orders
@@ -75,7 +75,7 @@ export default function CheckoutSuccessPage() {
 
   return (
     <div className="rounded-xl2 border border-border bg-white p-10 text-center">
-      <h1 className="text-lg font-extrabold text-navy">We couldn't confirm this payment</h1>
+      <h1 className="text-lg font-extrabold text-navy">We couldn&apos;t confirm this payment</h1>
       <p className="mt-1 text-muted">Nothing was charged to your order. You can try again from your cart.</p>
       <Link href="/cart" className="mt-5 inline-block rounded-lg bg-brand px-5 py-2 font-semibold text-white">
         Back to cart

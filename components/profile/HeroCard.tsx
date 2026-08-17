@@ -29,15 +29,6 @@ export default function HeroCard({
 
   return (
     <div className="relative overflow-hidden rounded-xl2 bg-gradient-to-br from-navy via-brand-dark to-brand shadow-card-lg">
-      <button
-        onClick={onLogoutClick}
-        aria-label="Log out"
-        title="Log out"
-        className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white"
-      >
-        <LogoutIcon className="h-4 w-4" />
-      </button>
-
       <div className="flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center lg:gap-8">
         {/* Identity */}
         <div className="flex flex-1 items-center gap-4 text-white">
@@ -119,6 +110,16 @@ export default function HeroCard({
             )}
           </div>
         </div>
+      </div>
+
+      <div className="flex justify-end border-t border-white/10 px-5 py-3 sm:px-6">
+        <button
+          onClick={onLogoutClick}
+          className="flex items-center gap-1.5 rounded-full bg-red-500/15 px-3 py-1.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/25 hover:text-red-200"
+        >
+          <LogoutIcon className="h-3.5 w-3.5" />
+          Log out
+        </button>
       </div>
     </div>
   );

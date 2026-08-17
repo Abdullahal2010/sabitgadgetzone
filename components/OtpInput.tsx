@@ -97,7 +97,7 @@ export default function OtpInput({
   }
 
   return (
-    <div className="flex justify-center gap-2.5" onPaste={handlePaste}>
+    <div className="flex justify-center gap-2 sm:gap-2.5" onPaste={handlePaste}>
       {digits.map((digit, i) => (
         <input
           key={i}
@@ -112,7 +112,11 @@ export default function OtpInput({
           value={digit}
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
-          className="h-14 w-12 rounded-lg border-2 border-border bg-bg text-center text-2xl font-bold text-navy outline-none transition focus:border-brand focus:ring-2 focus:ring-brand disabled:opacity-60 sm:h-16 sm:w-14"
+          // flex-1 + aspect-square lets every box shrink to fit the
+          // available width on narrow screens (rather than overflowing a
+          // fixed pixel size), while max-w keeps them from growing too
+          // large on wide/desktop screens.
+          className="aspect-square h-auto w-full max-w-[56px] flex-1 rounded-lg border-2 border-border bg-bg text-center text-xl font-bold text-navy outline-none transition focus:border-brand focus:ring-2 focus:ring-brand disabled:opacity-60 sm:text-2xl"
         />
       ))}
     </div>

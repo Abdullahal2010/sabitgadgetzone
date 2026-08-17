@@ -25,8 +25,7 @@ export default async function AdminUsersPage() {
             <tr className="border-b border-border text-xs uppercase text-muted">
               <th className="pb-2 pr-3">Name</th>
               <th className="pb-2 pr-3">Phone</th>
-              <th className="pb-2 pr-3">Wallet</th>
-              <th className="pb-2 text-right">Actions</th>
+              <th className="pb-2">Wallet</th>
             </tr>
           </thead>
           <tbody>

@@ -2,6 +2,11 @@
 
 // Shared by the login and registration pages — a phone input styled with a
 // small Bangladesh flag, matching the reference design for both.
+//
+// The +88 country code is fixed and shown as a static, non-editable label
+// between the flag and the input — every phone number in the app is a
+// Bangladeshi number, so users only ever type the 11-digit local part
+// (01XXXXXXXXX) and can't accidentally omit or change the country code.
 export default function BdPhoneField({
   value,
   onChange,
@@ -19,13 +24,18 @@ export default function BdPhoneField({
         <span className="h-2.5 w-2.5 rounded-full bg-[#F42A41]" />
       </span>
       <span className="h-4 w-px flex-shrink-0 bg-border" />
+      <span aria-hidden className="flex-shrink-0 text-sm font-semibold text-muted">
+        +88
+      </span>
+      <span className="h-4 w-px flex-shrink-0 bg-border" />
       <input
         type="tel"
         required
         autoFocus={autoFocus}
         placeholder={placeholder}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        maxLength={11}
+        onChange={(e) => onChange(e.target.value.replace(/\D/g, '').slice(0, 11))}
         className="min-w-0 flex-1 bg-transparent text-sm text-navy outline-none placeholder:text-muted"
       />
     </div>

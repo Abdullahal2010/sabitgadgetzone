@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { connectToDatabase } from './mongodb';
 import EmailOtp from './models/EmailOtp';
-import { sendOtpEmail } from './resend';
+import { sendOtpEmail } from './mailer';
 
 const CODE_LENGTH = 6;
 const EXPIRY_MINUTES = 10;

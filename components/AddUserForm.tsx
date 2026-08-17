@@ -2,10 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import BdPhoneField from '@/components/BdPhoneField';
+
+const BD_LOCAL_REGEX = /^01[3-9]\d{8}$/; // 01XXXXXXXXX
 
 export default function AddUserForm() {
   const router = useRouter();
-  const [phone, setPhone] = useState('');
+  const [phoneInput, setPhoneInput] = useState('');
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -13,8 +16,15 @@ export default function AddUserForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
     setError('');
+
+    if (!BD_LOCAL_REGEX.test(phoneInput.trim())) {
+      setError('Enter a valid Bangladeshi mobile number, e.g. 01XXXXXXXXX');
+      return;
+    }
+    const phone = `+88${phoneInput.trim()}`;
+
+    setSaving(true);
     const res = await fetch('/api/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -26,7 +36,7 @@ export default function AddUserForm() {
       setError(data.error || 'Failed to add user.');
       return;
     }
-    setPhone('');
+    setPhoneInput('');
     setEmail('');
     setName('');
     router.refresh();
@@ -45,14 +55,7 @@ export default function AddUserForm() {
       </label>
       <label className="flex flex-col gap-1 text-sm font-medium text-navy">
         Phone number
-        <input
-          required
-          type="tel"
-          placeholder="+8801XXXXXXXXX"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          className="rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-brand"
-        />
+        <BdPhoneField value={phoneInput} onChange={setPhoneInput} />
       </label>
       <label className="flex flex-col gap-1 text-sm font-medium text-navy">
         Email

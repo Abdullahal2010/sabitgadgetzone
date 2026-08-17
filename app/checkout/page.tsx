@@ -96,7 +96,7 @@ export default function CheckoutPage() {
         {placing ? 'Redirecting…' : 'Next'}
       </button>
       <p className="mt-3 text-center text-[11px] text-muted">
-        You'll choose bKash, Nagad, Rocket, or another method on the next screen.
+        You&apos;ll choose bKash, Nagad, Rocket, or another method on the next screen.
       </p>
     </div>
   );

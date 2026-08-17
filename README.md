@@ -11,7 +11,7 @@ real Bangladeshi payment gateway.
 | Framework        | Next.js 14, **App Router**, TypeScript (strict)                         |
 | Styling          | Tailwind CSS                                                             |
 | Database         | MongoDB via Mongoose                                                     |
-| Shopper auth     | Registration collects name/phone/email/password/DOB/gender, proves EMAIL ownership via a 6-digit code sent through Resend (see `lib/emailOtp.ts` + `lib/resend.ts`), then creates the account. Login accepts either the phone number or the email, plus the password, through a single NextAuth (Auth.js) Credentials provider — see `lib/authOptions.ts`. Phone is stored but no longer OTP-verified. |
+| Shopper auth     | Registration collects name/phone/email/password/DOB/gender, proves EMAIL ownership via a 6-digit code sent through either Gmail (Nodemailer) or Resend — see `lib/mailer.ts` — then creates the account. Login accepts either the phone number or the email, plus the password, through a single NextAuth (Auth.js) Credentials provider — see `lib/authOptions.ts`. Phone is stored but no longer OTP-verified. |
 | Admin auth       | A single fixed credential pair from `.env`, exchanged for a signed, expiring session token (HMAC-SHA256 via Web Crypto) — see `lib/adminSession.ts`. No password hashing, since there's only ever one admin account; don't reuse this pattern for multi-user credentials. |
 | Cart / Wishlist  | Client-side React Context + `localStorage` — no DB writes until checkout |
 | Wallet balance   | Client-side React state only ("Add money" is a UI demo, not a real balance — nothing is charged or persisted) |
@@ -39,14 +39,14 @@ app/
     users/                          # list + add + remove
   api/
     auth/[...nextauth]/          # NextAuth handler (identifier-password Credentials provider)
-    auth/email-otp/request/       # sends the 6-digit registration code via Resend, our own per-email rate limit
+    auth/email-otp/request/       # sends the 6-digit registration code (see lib/mailer.ts), our own per-email rate limit
     auth/admin-login/              # admin login/logout, issues the signed admin cookie
     checkout/create-payment/        # re-prices cart from DB, opens a DeshiPay session
     checkout/verify/                 # THE ONLY place an order is marked paid
     webhooks/deshipay/                # untrusted "go check" nudge -> re-runs verify
     products/, products/[id]/          # GET public, POST/PUT/DELETE admin-only
     orders/, orders/[id]/               # GET (own orders / admin), PATCH admin-only
-    users/, users/[id]/                  # GET/POST/DELETE admin-only
+    users/                                 # GET/POST admin-only
     users/me/, users/onboarding/          # signed-in shopper's own profile
     reviews/                               # GET public/own, POST gated on shipped order
 components/                # Header, Footer, ProductCard, review + admin widgets…
@@ -56,7 +56,10 @@ lib/
   auth.ts, adminSession.ts, authConstants.ts   # signed admin session cookie
   authOptions.ts            # NextAuth config (identifier-password Credentials provider — phone OR email)
   emailOtp.ts                # generates/hashes/stores/verifies the 6-digit email code
-  resend.ts                   # Resend client + branded OTP email template (inline logo via cid)
+  mailer.ts                   # picks the sending backend below via EMAIL_PROVIDER — nothing else in the app imports resend.ts/nodemailer.ts directly
+  emailTemplate.ts            # shared OTP email HTML + logo loader, used by both backends
+  resend.ts                   # Resend backend (needs a verified domain to reach real recipients)
+  nodemailer.ts               # Gmail SMTP backend (no domain needed — the default for now)
   otpRateLimit.ts            # per-email OTP request rate limiting
   deshipay.ts                 # DeshiPay API client (create-payment / verify)
   reviewAggregate.ts           # recomputes a product's rating average/count
@@ -79,18 +82,27 @@ Admin login is at `/admin/login`, using whatever `ADMIN_EMAIL` /
 fails closed if these are unset).
 
 Shopper registration is at `/register` — fill in name/phone/email/password/
-DOB/gender, then enter the 6-digit code emailed to you (via Resend) to
-create the account. Shopper login is at `/login` — enter **either** your
-phone number or your email, plus your password.
+DOB/gender, then enter the 6-digit code emailed to you to create the
+account. Shopper login is at `/login` — enter **either** your phone
+number or your email, plus your password.
 
-**Resend sandbox limitation:** until you verify a sending domain in the
-Resend dashboard, emails can only be delivered to the email address your
-Resend account itself was signed up with, from the shared address
-`onboarding@resend.dev`. You can still register multiple test accounts by
-using Gmail's `+tag` trick (e.g. `you+test1@gmail.com`,
-`you+test2@gmail.com`) — all land in the same inbox, but count as distinct
-accounts. Once you verify a real domain, set `EMAIL_FROM` in `.env.local`
-(see §4) and any real email address can register.
+**Which email backend sends the code is controlled by `EMAIL_PROVIDER`**
+in `.env.local` (see §4) — `lib/mailer.ts` is the single switch point;
+nothing else in the app needs to change when you flip it:
+
+- `EMAIL_PROVIDER=nodemailer` (the default right now) sends through a real
+  Gmail account via an App Password — no domain needed, delivers to any
+  real recipient, good for testing and a small early user base. See
+  `lib/nodemailer.ts`.
+- `EMAIL_PROVIDER=resend` sends through Resend. Until you verify a sending
+  domain in the Resend dashboard, Resend can only deliver to the email
+  address your Resend account itself was signed up with, from the shared
+  address `onboarding@resend.dev`. Once you verify a real domain, set
+  `EMAIL_FROM` and any real email address can register. See `lib/resend.ts`.
+
+The plan: use Nodemailer now, switch to `EMAIL_PROVIDER=resend` once a
+domain is bought and verified — better deliverability and no dependency on
+one personal Gmail account once real customers are involved.
 
 ## 4. Environment variables
 
@@ -102,6 +114,16 @@ ADMIN_SESSION_SECRET=            # random string; signs the admin session cookie
 
 NEXTAUTH_SECRET=                  # random string; signs the shopper NextAuth JWT
 NEXTAUTH_URL=                      # e.g. http://localhost:3000 in dev
+
+# Which email backend sends OTP codes — see lib/mailer.ts. "nodemailer" or "resend"
+EMAIL_PROVIDER=nodemailer
+
+# Nodemailer (Gmail SMTP) — used while EMAIL_PROVIDER=nodemailer
+# GMAIL_APP_PASSWORD is a 16-character code from
+# https://myaccount.google.com/apppasswords (needs 2-Step Verification on
+# first) — NOT your normal Gmail password.
+GMAIL_USER=
+GMAIL_APP_PASSWORD=
 
 # Resend (email OTP for registration) — https://resend.com/api-keys
 RESEND_API_KEY=
@@ -152,7 +174,8 @@ before real volume.
    uses that phone or email, applies a per-email rate limit
    (`lib/otpRateLimit.ts`), generates a 6-digit code, stores its bcrypt
    hash + a 10-minute expiry (`lib/models/EmailOtp.ts`), and emails it via
-   Resend (`lib/resend.ts`) using a template with the logo embedded as a
+   whichever backend `EMAIL_PROVIDER` selects (`lib/mailer.ts`) using a
+   shared template (`lib/emailTemplate.ts`) with the logo embedded as a
    `cid` inline attachment (not a hosted URL or base64 data URI — the most
    reliable way to get a logo through Gmail/Outlook).
 2. The code is entered into six separate boxes (`components/OtpInput.tsx`)

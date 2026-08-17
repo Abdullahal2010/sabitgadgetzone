@@ -49,9 +49,23 @@ export default function LoginPage() {
         <label className="flex flex-col gap-1.5 text-sm font-semibold text-navy">
           Phone Number or Email
           <div className="flex items-center gap-2 rounded-lg bg-bg px-3 py-2.5 focus-within:ring-2 focus-within:ring-brand">
-            <span aria-hidden className="flex-shrink-0 text-muted">
-              👤
-            </span>
+            <svg
+              aria-hidden
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="flex-shrink-0 text-muted"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
+              <path
+                d="M4 20c0-3.7 3.6-6.5 8-6.5s8 2.8 8 6.5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
             <input
               type="text"
               required

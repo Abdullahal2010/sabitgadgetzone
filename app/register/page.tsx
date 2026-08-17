@@ -46,11 +46,11 @@ export default function RegisterPage() {
   // code, or a freshly (re)sent code) — OtpInput watches this prop.
   const [otpResetSignal, setOtpResetSignal] = useState(0);
 
-  async function requestOtp(targetEmail: string) {
+  async function requestOtp(targetEmail: string, targetPhone: string) {
     const res = await fetch('/api/auth/email-otp/request', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: targetEmail })
+      body: JSON.stringify({ email: targetEmail, phone: targetPhone })
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -94,7 +94,10 @@ export default function RegisterPage() {
 
     setSending(true);
     try {
-      await requestOtp(normalizedEmail);
+      // Uniqueness (email + phone) is checked server-side before a code is
+      // ever sent, so someone re-using an existing phone/email finds out
+      // immediately instead of after waiting on an OTP email.
+      await requestOtp(normalizedEmail, normalizedPhone);
       setPhone(normalizedPhone);
       setEmail(normalizedEmail);
       setStep('otp');
@@ -146,7 +149,7 @@ export default function RegisterPage() {
     setError('');
     setSending(true);
     try {
-      await requestOtp(email);
+      await requestOtp(email, phone);
       setOtpResetSignal((n) => n + 1);
     } catch (err: any) {
       setError(err?.message || 'Could not resend the code — please try again.');
@@ -157,7 +160,11 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto max-w-sm rounded-xl2 border border-border bg-white p-8 shadow-card-lg">
+    <div
+      className={`mx-auto rounded-xl2 border border-border bg-white p-8 shadow-card-lg transition-all ${
+        step === 'otp' ? 'max-w-md' : 'max-w-sm'
+      }`}
+    >
       <h1 className="text-center text-2xl font-extrabold text-brand">Create Account</h1>
       <p className="mt-1 text-center text-sm text-muted">
         {step === 'form' ? 'Join us today! Enter your details below.' : `Enter the 6-digit code sent to ${email}.`}
