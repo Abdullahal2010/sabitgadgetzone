@@ -1,5 +1,5 @@
 import nodemailer, { Transporter } from 'nodemailer';
-import { getLogoBuffer, otpEmailHtml, OTP_EMAIL_SUBJECT } from './emailTemplate';
+import { getLogoBuffer, otpEmailHtml, OTP_EMAIL_SUBJECT, notificationEmailHtml } from './emailTemplate';
 
 /**
  * Nodemailer (Gmail SMTP) sending backend — one of two interchangeable
@@ -48,6 +48,33 @@ export async function sendOtpEmailViaNodemailer(to: string, code: string, expiry
     to,
     subject: OTP_EMAIL_SUBJECT,
     html: otpEmailHtml(code, expiryMinutes),
+    attachments: [
+      {
+        filename: 'logo.png',
+        content: logo,
+        cid: 'logo'
+      }
+    ]
+  });
+}
+
+/** Generic account-notification email — see lib/notify.ts for callers. */
+export async function sendNotificationEmailViaNodemailer(
+  to: string,
+  subject: string,
+  title: string,
+  body: string,
+  link?: string
+): Promise<void> {
+  const transporter = getTransporter();
+  const logo = await getLogoBuffer();
+  const user = process.env.GMAIL_USER;
+
+  await transporter.sendMail({
+    from: `"Sabit Gadget's Zone" <${user}>`,
+    to,
+    subject,
+    html: notificationEmailHtml(title, body, link),
     attachments: [
       {
         filename: 'logo.png',

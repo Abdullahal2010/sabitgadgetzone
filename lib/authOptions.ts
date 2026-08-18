@@ -55,6 +55,9 @@ export const authOptions: NextAuthOptions = {
           email: string;
           name: string;
           passwordHash?: string;
+          role?: 'user' | 'moderator' | 'admin';
+          banned?: boolean;
+          moderatorPermissions?: Record<string, boolean>;
         } | null>();
 
         // No account, or an admin-created account with no password set
@@ -64,11 +67,16 @@ export const authOptions: NextAuthOptions = {
         const passwordMatches = await bcrypt.compare(password, existing.passwordHash);
         if (!passwordMatches) return null;
 
+        // Banned users can still log in and browse (per product spec —
+        // only checkout/review are blocked, checked at those specific
+        // routes against the DB, not here).
         return {
           id: String(existing._id),
           phone: existing.phone,
           email: existing.email,
           name: existing.name,
+          role: existing.role || 'user',
+          moderatorPermissions: existing.moderatorPermissions,
           isNewUser: false
         };
       }
@@ -79,6 +87,13 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.phone = (user as any).phone;
         token.email = (user as any).email;
+        token.role = (user as any).role || 'user';
+        // Only meaningful for moderators, carried on the JWT purely so the
+        // admin sidebar (client component) can decide which links to show
+        // without an extra request — the API routes never trust this for
+        // an actual permission decision, they re-read it from the DB (see
+        // lib/serverAuth.ts).
+        token.moderatorPermissions = (user as any).moderatorPermissions;
         token.isNewUser = (user as any).isNewUser;
       }
       return token;
@@ -87,6 +102,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).phone = token.phone;
         (session.user as any).email = token.email;
+        (session.user as any).role = token.role || 'user';
+        (session.user as any).moderatorPermissions = token.moderatorPermissions;
         (session.user as any).isNewUser = token.isNewUser;
       }
       return session;

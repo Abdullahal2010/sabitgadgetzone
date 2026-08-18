@@ -3,6 +3,9 @@ import UserModel from '@/lib/models/User';
 import { AppUser } from '@/types';
 import AddUserForm from '@/components/AddUserForm';
 import AdminUserRow from '@/components/AdminUserRow';
+import { getSessionUser } from '@/lib/serverAuth';
+import { canManageUsers } from '@/lib/permissions';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +16,11 @@ async function getUsers(): Promise<AppUser[]> {
 }
 
 export default async function AdminUsersPage() {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser || !canManageUsers(sessionUser)) {
+    redirect('/admin/products');
+  }
+
   const users = await getUsers();
 
   return (
@@ -25,12 +33,15 @@ export default async function AdminUsersPage() {
             <tr className="border-b border-border text-xs uppercase text-muted">
               <th className="pb-2 pr-3">Name</th>
               <th className="pb-2 pr-3">Phone</th>
-              <th className="pb-2">Wallet</th>
+              <th className="pb-2 pr-3">Role</th>
+              <th className="pb-2 pr-3">Status</th>
+              <th className="pb-2 pr-3">Wallet</th>
+              <th className="pb-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {users.map((user) => (
-              <AdminUserRow key={user._id} user={user} />
+              <AdminUserRow key={user._id} user={user} currentUserId={sessionUser.id} />
             ))}
           </tbody>
         </table>

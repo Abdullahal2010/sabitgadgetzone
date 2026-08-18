@@ -6,6 +6,8 @@ import Review from '@/lib/models/Review';
 import Order from '@/lib/models/Order';
 import User from '@/lib/models/User';
 import { recomputeProductRating } from '@/lib/reviewAggregate';
+import { getSessionUser } from '@/lib/serverAuth';
+import { canReview } from '@/lib/permissions';
 
 // GET /api/reviews?productId=...  -> public: every review for a product
 //                                    (used on the product detail page)
@@ -39,13 +41,22 @@ export async function GET(request: NextRequest) {
 // "delivered") — see the brief: "users will only be able to rate the
 // product after the product is shipped from the admin side."
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  const phone = (session?.user as any)?.phone;
+  const sessionUser = await getSessionUser();
 
-  if (!phone) {
+  if (!sessionUser) {
     return NextResponse.json({ error: 'Log in to leave a review' }, { status: 401 });
   }
+  // Checked here, against a fresh DB read, at the crucial moment a review
+  // is actually submitted — banned/restricted accounts can still browse
+  // and read reviews, just not post one.
+  if (!canReview(sessionUser)) {
+    return NextResponse.json(
+      { error: 'Your account is currently restricted from posting reviews.' },
+      { status: 403 }
+    );
+  }
 
+  const phone = sessionUser.phone;
   const { orderId, productId, rating, comment } = await request.json();
 
   if (!orderId || !productId || !rating || rating < 1 || rating > 5) {

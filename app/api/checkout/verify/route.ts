@@ -3,6 +3,8 @@ import { connectToDatabase } from '@/lib/mongodb';
 import Order from '@/lib/models/Order';
 import Product from '@/lib/models/Product';
 import { verifyPayment } from '@/lib/deshipay';
+import User from '@/lib/models/User';
+import { notify } from '@/lib/notify';
 
 // The ONLY place an order is ever marked paid. Called from the success
 // page (with the transactionId DeshiPay put on the redirect) and again
@@ -54,6 +56,21 @@ export async function POST(request: NextRequest) {
           })
         )
       );
+
+      const buyer = await User.findOne({ phone: updated.userPhone }).select('_id email').lean<{
+        _id: string;
+        email: string;
+      } | null>();
+      if (buyer) {
+        await notify({
+          recipientId: String(buyer._id),
+          recipientEmail: buyer.email,
+          type: 'order_confirmed',
+          title: 'Payment confirmed — your order is on its way',
+          body: `Payment for order #${String(updated._id).slice(-6)} has been confirmed. It's now being processed.`,
+          link: '/profile?tab=orders'
+        });
+      }
     }
 
     return NextResponse.json({ paymentStatus: 'completed', orderStatus: 'processing' });

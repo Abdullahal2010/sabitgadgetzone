@@ -10,12 +10,10 @@ const SOCIAL_PLATFORMS = ['Facebook', 'Instagram', 'X (Twitter)', 'YouTube', 'We
 
 export default function SettingsTab({
   user,
-  onProfileUpdated,
-  onAccountDeleted
+  onProfileUpdated
 }: {
   user: AppUser;
   onProfileUpdated: () => Promise<void>;
-  onAccountDeleted: () => Promise<void>;
 }) {
   const [name, setName] = useState(user.name);
   const [address, setAddress] = useState(user.address || '');
@@ -37,11 +35,6 @@ export default function SettingsTab({
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [newPlatform, setNewPlatform] = useState(SOCIAL_PLATFORMS[0]);
   const [newUrl, setNewUrl] = useState('');
-
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteAck, setDeleteAck] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState('');
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -66,25 +59,6 @@ export default function SettingsTab({
       setSaveError('Could not save changes — please try again.');
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handleDeleteAccount() {
-    setDeleteError('');
-    setDeleting(true);
-    try {
-      const res = await fetch('/api/users/me', { method: 'DELETE' });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setDeleteError(data.error || 'Could not delete your account — please try again.');
-        return;
-      }
-      setShowDeleteConfirm(false);
-      await onAccountDeleted();
-    } catch {
-      setDeleteError('Could not delete your account — please try again.');
-    } finally {
-      setDeleting(false);
     }
   }
 
@@ -256,75 +230,8 @@ export default function SettingsTab({
         </div>
       </div>
 
-      {/* Danger zone */}
-      <div className="rounded-xl2 border border-red-200 bg-red-50/40 p-6">
-        <h2 className="mb-1 text-lg font-extrabold text-red-500">Danger Zone</h2>
-        <p className="mb-4 text-xs text-muted">Deleting your account is permanent and can&apos;t be undone.</p>
-        <button
-          onClick={() => setShowDeleteConfirm(true)}
-          className="rounded-full border border-red-300 bg-white px-4 py-2 text-xs font-bold text-red-500 transition hover:bg-red-500 hover:text-white"
-        >
-          Delete My Account
-        </button>
-      </div>
-
-      {showDeleteConfirm && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-navy/50 p-4 backdrop-blur-sm"
-          onClick={() => {
-            if (deleting) return;
-            setShowDeleteConfirm(false);
-            setDeleteAck(false);
-            setDeleteError('');
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-xl2 bg-white p-6 text-center shadow-card-lg"
-          >
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500">
-              <TrashIcon className="h-7 w-7" />
-            </div>
-            <h3 className="mt-4 text-lg font-extrabold text-navy">Delete your account?</h3>
-            <p className="mt-1.5 text-sm text-muted">
-              This permanently removes your account and profile from our database. Your past orders stay on
-              record for accounting purposes, but they&apos;ll no longer be linked to a login. This can&apos;t be
-              undone.
-            </p>
-            <label className="mt-4 flex items-center justify-center gap-2 text-xs text-muted">
-              <input
-                type="checkbox"
-                checked={deleteAck}
-                onChange={(e) => setDeleteAck(e.target.checked)}
-                disabled={deleting}
-                className="h-4 w-4 rounded border-border text-red-500 focus:ring-red-400"
-              />
-              I understand this action is permanent
-            </label>
-            {deleteError && <p className="mt-3 text-sm text-red-500">{deleteError}</p>}
-            <div className="mt-5 flex gap-3">
-              <button
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  setDeleteAck(false);
-                  setDeleteError('');
-                }}
-                disabled={deleting}
-                className="flex-1 rounded-full border border-border py-2.5 text-sm font-bold text-navy transition hover:bg-bg disabled:opacity-60"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={!deleteAck || deleting}
-                onClick={handleDeleteAccount}
-                className="flex-1 rounded-full bg-red-500 py-2.5 text-sm font-bold text-white shadow-card transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {deleting ? 'Deleting…' : 'Delete Account'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Account deletion is admin-only now — see Account Status tab for
+          how to reach support if you want your account removed. */}
     </div>
   );
 }

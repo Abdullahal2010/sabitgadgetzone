@@ -111,25 +111,6 @@ export async function PATCH(request: NextRequest) {
   return NextResponse.json(updated);
 }
 
-// DELETE /api/users/me — the signed-in shopper permanently deleting their
-// OWN account, resolved from their session (never a client-supplied id).
-// This removes the User document from MongoDB for good. Their past orders
-// and reviews are intentionally left in place (standard practice for
-// order/accounting history — order rows key on the phone number, not on a
-// User reference) rather than cascade-deleted; that's a separate decision
-// to make later if actually desired.
-export async function DELETE() {
-  const session = await getServerSession(authOptions);
-  const phone = (session?.user as any)?.phone;
-
-  if (!phone) {
-    return NextResponse.json({ error: 'Not signed in' }, { status: 401 });
-  }
-
-  await connectToDatabase();
-  const deleted = await User.findOneAndDelete({ phone });
-  if (!deleted) {
-    return NextResponse.json({ error: 'Account not found' }, { status: 404 });
-  }
-  return NextResponse.json({ success: true });
-}
+// Account deletion is admin-only now (see DELETE /api/users/[id]) — a
+// shopper can no longer delete their own account from /profile. There is
+// intentionally no DELETE handler here.

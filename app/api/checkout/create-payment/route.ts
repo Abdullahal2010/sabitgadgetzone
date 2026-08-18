@@ -1,22 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/authOptions';
 import { connectToDatabase } from '@/lib/mongodb';
 import Product from '@/lib/models/Product';
 import Order from '@/lib/models/Order';
 import User from '@/lib/models/User';
 import { createPayment } from '@/lib/deshipay';
+import { getSessionUser } from '@/lib/serverAuth';
+import { canShop } from '@/lib/permissions';
+import { notify } from '@/lib/notify';
 
 // Creates a pending Order priced from the database (never from whatever
 // the browser sends), then asks DeshiPay for a hosted payment_url to
 // redirect the customer to. Nothing is marked paid here — that only
 // happens in /api/checkout/verify after a real server-to-server check.
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  const phone = (session?.user as any)?.phone;
-  if (!phone) {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) {
     return NextResponse.json({ error: 'Log in to check out' }, { status: 401 });
   }
+  // Checked at the crucial moment — placing an order — against a fresh DB
+  // read. Banned/restricted accounts can still browse and add to cart,
+  // just can't complete checkout.
+  if (!canShop(sessionUser)) {
+    return NextResponse.json(
+      { error: 'Your account is currently restricted from placing orders.' },
+      { status: 403 }
+    );
+  }
+  const phone = sessionUser.phone;
 
   const { items, cusEmail } = await request.json();
   if (!Array.isArray(items) || items.length === 0) {
@@ -76,6 +86,15 @@ export async function POST(request: NextRequest) {
     await Order.findByIdAndDelete(order._id);
     return NextResponse.json({ error: result.message || 'Could not start payment' }, { status: 502 });
   }
+
+  await notify({
+    recipientId: sessionUser.id,
+    recipientEmail: email,
+    type: 'order_placed',
+    title: 'Your order has been placed',
+    body: `Order #${String(order._id).slice(-6)} for ৳${total.toLocaleString()} has been created and is awaiting payment confirmation.`,
+    link: '/profile?tab=orders'
+  });
 
   return NextResponse.json({ orderId: order._id, paymentUrl: result.payment_url });
 }

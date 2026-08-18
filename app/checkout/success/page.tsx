@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCart } from '@/contexts/CartContext';
@@ -8,6 +8,20 @@ import { useCart } from '@/contexts/CartContext';
 type Status = 'checking' | 'completed' | 'pending' | 'failed' | 'error';
 
 export default function CheckoutSuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="rounded-xl2 border border-border bg-white p-10 text-center">
+          <p className="text-muted">Confirming your payment…</p>
+        </div>
+      }
+    >
+      <CheckoutSuccessContent />
+    </Suspense>
+  );
+}
+
+function CheckoutSuccessContent() {
   const params = useSearchParams();
   const { clearCart } = useCart();
   const [status, setStatus] = useState<Status>('checking');

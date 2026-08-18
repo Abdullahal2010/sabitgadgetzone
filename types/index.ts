@@ -57,6 +57,21 @@ export interface Order {
   createdAt: string;
 }
 
+export type Role = 'user' | 'moderator' | 'admin';
+
+export interface ModeratorPermissions {
+  addProducts: boolean;
+  editProducts: boolean;
+  deleteProducts: boolean;
+  viewOrders: boolean;
+  changeOrderStatus: boolean;
+}
+
+export interface UserRestrictions {
+  canShop: boolean;
+  canReview: boolean;
+}
+
 export interface AppUser {
   _id: string;
   phone: string;
@@ -67,4 +82,29 @@ export interface AppUser {
   email?: string;
   walletBalance: number;
   createdAt?: string;
+  role: Role;
+  banned?: boolean;
+  banReason?: string;
+  restrictions?: UserRestrictions;
+  moderatorPermissions?: ModeratorPermissions;
+}
+
+export type NotificationType =
+  | 'welcome'
+  | 'role_change'
+  | 'banned'
+  | 'unbanned'
+  | 'restriction_change'
+  | 'order_placed'
+  | 'order_confirmed'
+  | 'order_status_change';
+
+export interface AppNotification {
+  _id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  link?: string;
+  read: boolean;
+  createdAt: string;
 }

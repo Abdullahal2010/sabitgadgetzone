@@ -5,8 +5,7 @@ import { Schema, models, model } from 'mongoose';
  * limit at our own layer, independent of Resend's own abuse protection —
  * see lib/otpRateLimit.ts.
  *
- * This used to be keyed by phone (back when OTP verified phone ownership
- * via Firebase). Registration now verifies email ownership instead — see
+ * Registration verifies email ownership — see
  * app/api/auth/email-otp/request/route.ts — so this is keyed by email.
  */
 const OtpRateLimitSchema = new Schema({

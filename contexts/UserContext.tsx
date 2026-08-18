@@ -75,10 +75,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
     };
   }, [phone, isNewUser, status]);
 
+  // Uses NextAuth's own redirect (rather than `redirect: false` + a manual
+  // router.push) deliberately: that combination raced the client-side
+  // navigation against the sign-out cookie actually clearing, which could
+  // leave a stale session cookie in place for the next request. Middleware
+  // would then see that leftover cookie as "still logged in" and bounce a
+  // freshly-logged-out user attempting to log back in straight to
+  // /profile — which itself would bounce back to /login because the
+  // client-side session had already cleared, landing them in a stuck
+  // redirect loop (the "Loading your account…" screen that never
+  // resolves). A real signOut redirect is a hard navigation: the cookie is
+  // gone and the whole app reloads fresh before anything else runs.
   async function logout() {
-    setProfile(null);
-    setWalletBalance(0);
-    await signOut({ redirect: false });
+    await signOut({ callbackUrl: '/' });
   }
 
   function addMoney(amount: number) {

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useUser } from '@/contexts/UserContext';
+import NotificationBell from '@/components/NotificationBell';
 
 export default function Header() {
   const { count } = useCart();
@@ -55,9 +56,18 @@ export default function Header() {
           <Link href="/cart" className="whitespace-nowrap text-[13.5px] font-medium text-white hover:text-brand-light">
             অফার সমূহ
           </Link>
+          {(user?.role === 'admin' || user?.role === 'moderator') && (
+            <Link
+              href="/admin/products"
+              className="whitespace-nowrap text-[13.5px] font-bold text-white hover:text-brand-light"
+            >
+              Dashboard
+            </Link>
+          )}
         </nav>
 
         <div className="ml-auto flex flex-shrink-0 items-center gap-3.5">
+          {user && <NotificationBell />}
           <Link href="/cart" className="relative flex items-center gap-1.5 text-[13px] font-medium text-white hover:text-brand-light">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path

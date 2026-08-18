@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { getLogoBuffer, otpEmailHtml, OTP_EMAIL_SUBJECT } from './emailTemplate';
+import { getLogoBuffer, otpEmailHtml, OTP_EMAIL_SUBJECT, notificationEmailHtml } from './emailTemplate';
 
 /**
  * Resend sending backend — one of two interchangeable backends behind
@@ -44,5 +44,35 @@ export async function sendOtpEmailViaResend(to: string, code: string, expiryMinu
 
   if (error) {
     throw new Error(error.message || 'Failed to send verification email.');
+  }
+}
+
+/** Generic account-notification email — see lib/notify.ts for callers. */
+export async function sendNotificationEmailViaResend(
+  to: string,
+  subject: string,
+  title: string,
+  body: string,
+  link?: string
+): Promise<void> {
+  const resend = getResendClient();
+  const logo = await getLogoBuffer();
+
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject,
+    html: notificationEmailHtml(title, body, link),
+    attachments: [
+      {
+        filename: 'logo.png',
+        content: logo,
+        contentId: 'logo'
+      }
+    ]
+  });
+
+  if (error) {
+    throw new Error(error.message || 'Failed to send notification email.');
   }
 }

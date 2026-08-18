@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminAuthenticated } from '@/lib/auth';
 import { connectToDatabase } from '@/lib/mongodb';
 import User from '@/lib/models/User';
+import { getSessionUser } from '@/lib/serverAuth';
+import { canManageUsers } from '@/lib/permissions';
 
-// GET /api/users — admin only: "manage users" list.
-//
-// SECURITY: middleware.ts only guards non-GET requests to /api/users (so
-// the admin-only POST/DELETE below stay protected), which left this GET
-// reachable by anyone and leaking every user's phone/name/DOB/address/
-// email. Checked explicitly here instead.
+// GET /api/users — admin only: "manage users" list. Moderators and users
+// never see this data, per the product spec ("moderators: no other access
+// than products"). Checked against a fresh DB read, not the cached JWT.
 export async function GET() {
-  if (!(await isAdminAuthenticated())) {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser || !canManageUsers(sessionUser)) {
     return NextResponse.json({ error: 'Unauthorized — admin login required' }, { status: 401 });
   }
   await connectToDatabase();
@@ -19,13 +18,17 @@ export async function GET() {
 }
 
 // POST /api/users — admin only: add a user by hand from the dashboard.
-// Real shoppers never hit this route — they're created automatically the
-// first time they complete phone OTP + onboarding (see
-// app/api/users/onboarding/route.ts). This exists purely for the admin
-// "add user manually" convenience form.
+// Real shoppers never hit this route — they're created automatically at
+// registration (see app/api/auth/register/route.ts). This exists purely
+// for the admin "add user manually" convenience form.
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: NextRequest) {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser || !canManageUsers(sessionUser)) {
+    return NextResponse.json({ error: 'Unauthorized — admin login required' }, { status: 401 });
+  }
+
   await connectToDatabase();
   const { phone, email, name, walletBalance } = await request.json();
 

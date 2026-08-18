@@ -5,7 +5,15 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Product } from '@/types';
 
-export default function AdminProductRow({ product }: { product: Product }) {
+export default function AdminProductRow({
+  product,
+  canEdit,
+  canDelete
+}: {
+  product: Product;
+  canEdit: boolean;
+  canDelete: boolean;
+}) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
 
@@ -28,19 +36,24 @@ export default function AdminProductRow({ product }: { product: Product }) {
       <td className="py-2.5 pr-3 text-sm">{product.stock}</td>
       <td className="py-2.5 pr-3 text-sm text-muted">{product.category}</td>
       <td className="py-2.5 text-right">
-        <Link
-          href={`/admin/products/${product._id}`}
-          className="mr-3 text-sm font-semibold text-brand hover:underline"
-        >
-          Edit
-        </Link>
-        <button
-          onClick={handleDelete}
-          disabled={deleting}
-          className="text-sm font-semibold text-red-500 hover:underline disabled:opacity-50"
-        >
-          {deleting ? 'Deleting…' : 'Delete'}
-        </button>
+        {canEdit && (
+          <Link
+            href={`/admin/products/${product._id}`}
+            className="mr-3 text-sm font-semibold text-brand hover:underline"
+          >
+            Edit
+          </Link>
+        )}
+        {canDelete && (
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="text-sm font-semibold text-red-500 hover:underline disabled:opacity-50"
+          >
+            {deleting ? 'Deleting…' : 'Delete'}
+          </button>
+        )}
+        {!canEdit && !canDelete && <span className="text-xs text-muted">View only</span>}
       </td>
     </tr>
   );

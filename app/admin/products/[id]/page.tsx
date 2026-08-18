@@ -1,8 +1,10 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { connectToDatabase } from '@/lib/mongodb';
 import ProductModel from '@/lib/models/Product';
 import { Product } from '@/types';
 import ProductForm from '@/components/ProductForm';
+import { getSessionUser } from '@/lib/serverAuth';
+import { canEditProduct } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +19,9 @@ async function getProduct(id: string): Promise<Product | null> {
 }
 
 export default async function EditProductPage({ params }: { params: { id: string } }) {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser || !canEditProduct(sessionUser)) redirect('/admin/products');
+
   const product = await getProduct(params.id);
   if (!product) notFound();
 

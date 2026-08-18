@@ -1,8 +1,11 @@
+import { redirect } from 'next/navigation';
 import { connectToDatabase } from '@/lib/mongodb';
 import Product from '@/lib/models/Product';
 import Order from '@/lib/models/Order';
 import User from '@/lib/models/User';
 import Link from 'next/link';
+import { getSessionUser } from '@/lib/serverAuth';
+import { canViewDashboardStats } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +25,14 @@ async function getStats() {
 }
 
 export default async function AdminDashboardPage() {
+  // Dashboard-wide stats (revenue, total counts) are admin-only — a
+  // moderator hitting this URL directly is redirected to the one section
+  // they do have: Products.
+  const sessionUser = await getSessionUser();
+  if (!sessionUser || !canViewDashboardStats(sessionUser)) {
+    redirect('/admin/products');
+  }
+
   const stats = await getStats();
 
   const cards = [

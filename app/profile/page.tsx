@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { Order, Review } from '@/types';
 import ProfileTabs, { ProfileTabId } from '@/components/profile/ProfileTabs';
@@ -12,12 +12,40 @@ import AccountStatusTab from '@/components/profile/AccountStatusTab';
 import HeroCard from '@/components/profile/HeroCard';
 
 export default function ProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[40vh] items-center justify-center">
+          <div className="flex items-center gap-3 text-muted">
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-border border-t-brand" />
+            Loading your account…
+          </div>
+        </div>
+      }
+    >
+      <ProfileContent />
+    </Suspense>
+  );
+}
+
+function ProfileContent() {
   const { user, loading, walletBalance, addMoney, logout, refreshProfile } = useUser();
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [myReviews, setMyReviews] = useState<Record<string, Review>>({});
   const [activeTab, setActiveTab] = useState<ProfileTabId>('overview');
+  const searchParams = useSearchParams();
+
+  // Notification links deep-link straight to a tab, e.g. a ban notice
+  // linking to /profile?tab=status — read once on mount.
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'overview' || tab === 'orders' || tab === 'settings' || tab === 'status') {
+      setActiveTab(tab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -50,14 +78,12 @@ export default function ProfilePage() {
 
   async function handleConfirmLogout() {
     setLoggingOut(true);
+    // logout() now performs a full hard-redirect via NextAuth's own
+    // signOut (see contexts/UserContext.tsx) — it navigates away on its
+    // own, so there's nothing further to do here.
     await logout();
-    router.push('/');
   }
 
-  async function handleAccountDeleted() {
-    await logout();
-    router.push('/');
-  }
 
   if (loading || !user) {
     return (
@@ -93,7 +119,7 @@ export default function ProfilePage() {
         />
       )}
       {activeTab === 'settings' && (
-        <SettingsTab user={user} onProfileUpdated={refreshProfile} onAccountDeleted={handleAccountDeleted} />
+        <SettingsTab user={user} onProfileUpdated={refreshProfile} />
       )}
       {activeTab === 'status' && <AccountStatusTab user={user} />}
 

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { connectToDatabase } from '@/lib/mongodb';
 import User from '@/lib/models/User';
 import { verifyEmailOtp } from '@/lib/emailOtp';
+import { notify } from '@/lib/notify';
 
 const BD_E164_REGEX = /^\+8801[3-9]\d{8}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  await User.create({
+  const created = await User.create({
     phone,
     email: normalizedEmail,
     name: name.trim(),
@@ -72,6 +73,14 @@ export async function POST(request: Request) {
     dob: dob || undefined,
     gender,
     walletBalance: 0
+  });
+
+  await notify({
+    recipientId: String(created._id),
+    recipientEmail: normalizedEmail,
+    type: 'welcome',
+    title: `Welcome to Sabit Gadget's Zone, ${name.trim()}!`,
+    body: "Your account has been created. Explore the latest gadgets and enjoy shopping with us."
   });
 
   return NextResponse.json({ success: true, phone, email: normalizedEmail }, { status: 201 });

@@ -24,7 +24,6 @@ export default function Footer() {
           <ul className="space-y-2 text-sm text-white/70">
             <li><Link href="/login">Login</Link></li>
             <li><Link href="/profile">My account</Link></li>
-            <li><Link href="/admin/login">Seller / Admin login</Link></li>
           </ul>
         </div>
         <div>

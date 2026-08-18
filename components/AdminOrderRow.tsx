@@ -6,7 +6,7 @@ import { Order, OrderStatus } from '@/types';
 
 const STATUSES: OrderStatus[] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 
-export default function AdminOrderRow({ order }: { order: Order }) {
+export default function AdminOrderRow({ order, canEditStatus }: { order: Order; canEditStatus: boolean }) {
   const router = useRouter();
   const [updating, setUpdating] = useState(false);
 
@@ -33,18 +33,22 @@ export default function AdminOrderRow({ order }: { order: Order }) {
         ৳{order.total.toLocaleString()}
       </td>
       <td className="py-2.5 pr-3">
-        <select
-          value={order.status}
-          disabled={updating}
-          onChange={(e) => handleStatusChange(e.target.value as OrderStatus)}
-          className="rounded-md border border-border px-2 py-1 text-xs capitalize outline-none focus:border-brand"
-        >
-          {STATUSES.map((status) => (
-            <option key={status} value={status}>
-              {status}
-            </option>
-          ))}
-        </select>
+        {canEditStatus ? (
+          <select
+            value={order.status}
+            disabled={updating}
+            onChange={(e) => handleStatusChange(e.target.value as OrderStatus)}
+            className="rounded-md border border-border px-2 py-1 text-xs capitalize outline-none focus:border-brand"
+          >
+            {STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="rounded-md bg-bg px-2 py-1 text-xs capitalize text-muted">{order.status}</span>
+        )}
       </td>
       <td className="py-2.5 text-xs text-muted">{new Date(order.createdAt).toLocaleString()}</td>
     </tr>

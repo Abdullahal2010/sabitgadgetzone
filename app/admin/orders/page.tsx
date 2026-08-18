@@ -2,21 +2,40 @@ import { connectToDatabase } from '@/lib/mongodb';
 import OrderModel from '@/lib/models/Order';
 import { Order } from '@/types';
 import AdminOrderRow from '@/components/AdminOrderRow';
+import { getSessionUser } from '@/lib/serverAuth';
+import { canViewOrders, canChangeOrderStatus } from '@/lib/permissions';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-async function getOrders(): Promise<Order[]> {
+async function getOrders(isAdmin: boolean): Promise<Order[]> {
   await connectToDatabase();
-  const orders = await OrderModel.find().sort({ createdAt: -1 }).lean();
+  // Moderators only ever see unresolved orders — delivered/cancelled
+  // orders drop out of their queue the moment they're resolved (per
+  // product spec); only admins retain full history.
+  const filter = isAdmin ? {} : { status: { $nin: ['delivered', 'cancelled'] } };
+  const orders = await OrderModel.find(filter).sort({ createdAt: -1 }).lean();
   return JSON.parse(JSON.stringify(orders));
 }
 
 export default async function AdminOrdersPage() {
-  const orders = await getOrders();
+  const sessionUser = await getSessionUser();
+  if (!sessionUser || !canViewOrders(sessionUser)) {
+    redirect('/admin/products');
+  }
+
+  const isAdmin = sessionUser.role === 'admin';
+  const orders = await getOrders(isAdmin);
+  const canEditStatus = canChangeOrderStatus(sessionUser);
 
   return (
     <div>
       <h1 className="mb-5 text-xl font-extrabold text-navy">Orders ({orders.length})</h1>
+      {!isAdmin && (
+        <p className="mb-4 text-xs text-muted">
+          Showing unresolved orders only — delivered and cancelled orders are handled by admins.
+        </p>
+      )}
       <div className="overflow-x-auto rounded-xl2 border border-border bg-white p-4">
         <table className="w-full text-left">
           <thead>
@@ -31,7 +50,7 @@ export default async function AdminOrdersPage() {
           </thead>
           <tbody>
             {orders.map((order) => (
-              <AdminOrderRow key={order._id} order={order} />
+              <AdminOrderRow key={order._id} order={order} canEditStatus={canEditStatus} />
             ))}
           </tbody>
         </table>

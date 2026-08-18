@@ -1,6 +1,12 @@
 import ProductForm from '@/components/ProductForm';
+import { getSessionUser } from '@/lib/serverAuth';
+import { canAddProduct } from '@/lib/permissions';
+import { redirect } from 'next/navigation';
 
-export default function NewProductPage() {
+export default async function NewProductPage() {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser || !canAddProduct(sessionUser)) redirect('/admin/products');
+
   return (
     <div>
       <h1 className="mb-5 text-xl font-extrabold text-navy">Add product</h1>
