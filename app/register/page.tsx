@@ -136,7 +136,12 @@ export default function RegisterPage() {
         router.push('/login');
         return;
       }
-      router.push('/profile');
+      // Hard navigation on success, not router.push('/profile') — see the
+      // matching comment in app/login/page.tsx: redirect:false + a
+      // client-side push races the freshly-set session cookie against
+      // middleware's read of it, which can strand the user on /login
+      // until a hard reload.
+      window.location.href = '/profile';
     } catch {
       setError('Something went wrong — please try again.');
       setOtpResetSignal((n) => n + 1);

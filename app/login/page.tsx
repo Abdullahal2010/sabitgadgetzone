@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import PasswordField from '@/components/PasswordField';
 import BdPhoneField from '@/components/BdPhoneField';
@@ -16,7 +15,6 @@ const BD_LOCAL_REGEX = /^01[3-9]\d{8}$/; // 01XXXXXXXXX
 // nobody has to type a country code by hand — it's applied automatically
 // on submit.
 export default function LoginPage() {
-  const router = useRouter();
   const [method, setMethod] = useState<'phone' | 'email'>('phone');
   const [phoneInput, setPhoneInput] = useState('');
   const [email, setEmail] = useState('');
@@ -50,7 +48,15 @@ export default function LoginPage() {
         setError('Incorrect phone/email or password.');
         return;
       }
-      router.push('/profile');
+      // A hard navigation, not router.push('/profile') — same fix as
+      // logout in contexts/UserContext.tsx, for the same reason: redirect:
+      // false + a client-side router.push() races the App Router's
+      // soft-navigation/middleware pass against the session cookie just
+      // set by signIn(), which can land on /login (stuck until a hard
+      // reload) even though the header already shows a logged-in state.
+      // A full navigation guarantees the very next request — including
+      // middleware's read of the cookie — sees the fresh session.
+      window.location.href = '/profile';
     } finally {
       setLoading(false);
     }

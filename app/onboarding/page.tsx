@@ -1,14 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useUser } from '@/contexts/UserContext';
 
 // Shown exactly once, right after a phone number is verified for the first
 // time (existing numbers skip straight to /profile — see middleware.ts).
 export default function OnboardingPage() {
-  const router = useRouter();
   const { data: session } = useSession();
   const { refreshSession } = useUser();
   const [name, setName] = useState('');
@@ -35,7 +33,12 @@ export default function OnboardingPage() {
         throw new Error(data.error || 'Could not save your details.');
       }
       await refreshSession();
-      router.push('/profile');
+      // Hard navigation, not router.push('/profile') — see the matching
+      // comment in app/login/page.tsx. refreshSession() updates the JWT's
+      // isNewUser flag via next-auth's update(), but a client-side push
+      // right after can still race middleware's cookie read and strand
+      // the user back on /onboarding or /login until a hard reload.
+      window.location.href = '/profile';
     } catch (err: any) {
       setError(err?.message || 'Something went wrong — please try again.');
     } finally {
