@@ -77,7 +77,11 @@ export async function middleware(request: NextRequest) {
     request.method !== 'GET';
 
   if (isStaffWriteApi) {
-    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      secureCookie: process.env.NODE_ENV === 'production'
+    });
     const role = (token as any)?.role;
     const isStaff = role === 'admin' || role === 'moderator';
 
@@ -87,7 +91,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+    // Must match `useSecureCookies` in lib/authOptions.ts exactly — that's
+    // what decides the cookie NAME the session was actually stored under
+    // at login. Left unset, getToken() guesses independently and can pick
+    // the wrong name, which reads as "not logged in" on every navigation
+    // even though the browser is holding a perfectly valid cookie.
+    secureCookie: process.env.NODE_ENV === 'production'
+  });
   const isNewUser = Boolean((token as any)?.isNewUser);
 
   if ((pathname === '/login' || pathname === '/register') && token) {

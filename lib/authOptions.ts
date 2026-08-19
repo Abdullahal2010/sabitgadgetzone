@@ -27,6 +27,15 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt' },
   secret: process.env.NEXTAUTH_SECRET,
+  // Deliberately NOT derived from NEXTAUTH_URL — that env var is easy to
+  // leave misconfigured (e.g. still pointing at localhost from local dev)
+  // across Vercel's Production/Preview environments, and next-auth's
+  // secure-cookie name depends on it. Pinning this to NODE_ENV keeps the
+  // cookie name/flags deterministic and, critically, keeps it IN SYNC with
+  // the `secureCookie` passed to getToken() in middleware.ts — a mismatch
+  // there is what causes "logged in, but every navigation bounces to
+  // /login until a hard reload".
+  useSecureCookies: process.env.NODE_ENV === 'production',
   pages: {
     signIn: '/login'
   },
@@ -107,6 +116,24 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).isNewUser = token.isNewUser;
       }
       return session;
+    },
+    // Default next-auth behavior turns a relative callbackUrl (e.g. the "/"
+    // passed by signOut() in contexts/UserContext.tsx) into an ABSOLUTE url
+    // by prefixing it with `baseUrl`, and baseUrl comes straight from
+    // NEXTAUTH_URL. If that env var is stale/wrong for this environment
+    // (the classic case: still "http://localhost:3000" from local dev,
+    // left untouched in Vercel's dashboard), every sign-out sends the
+    // browser to localhost instead of the real domain. Returning the
+    // relative path as-is sidesteps that: the browser resolves it against
+    // whatever origin it's actually on, which is always correct.
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith('/')) return url;
+      try {
+        if (new URL(url).origin === baseUrl) return url;
+      } catch {
+        // fall through
+      }
+      return baseUrl;
     }
   }
 };
