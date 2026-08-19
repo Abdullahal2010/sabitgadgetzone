@@ -81,9 +81,9 @@ function TopLoadingBarInner() {
   if (!visible) return null;
 
   return (
-    <div className="pointer-events-none fixed left-0 top-0 z-[100] h-[3px] w-full">
+    <div className="pointer-events-none fixed left-0 top-0 z-[100] h-[5px] w-full bg-navy/10">
       <div
-        className="h-full bg-gradient-to-r from-teal via-brand to-brand-dark shadow-[0_0_10px_rgba(14,143,196,0.65)] transition-[width] duration-200 ease-out"
+        className="h-full bg-gradient-to-r from-teal via-brand to-brand-dark shadow-[0_0_16px_rgba(14,143,196,0.85)] transition-[width] duration-200 ease-out"
         style={{ width: `${progress}%` }}
       />
     </div>
